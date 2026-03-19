@@ -32,31 +32,48 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.pr_branch }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+      - name: Wait for SonarCloud Automatic Analysis
+        id: sonar-wait
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: |
+          echo "Waiting for SonarCloud Automatic Analysis to complete for PR #$PR_NUMBER..."
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: Checking SonarCloud analysis status..."
+            QG_RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+            QG_STATUS=$(echo "$QG_RESPONSE" | jq -r '.projectStatus.status // "NONE"')
+            echo "Quality Gate status: $QG_STATUS"
+            if [ "$QG_STATUS" != "NONE" ] && [ "$QG_STATUS" != "null" ]; then
+              echo "SonarCloud analysis complete. Quality Gate: $QG_STATUS"
+              echo "status=$QG_STATUS" >> $GITHUB_OUTPUT
+              break
+            fi
+            if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+              echo "Timed out waiting for SonarCloud analysis after $((MAX_ATTEMPTS * SLEEP_SECONDS)) seconds"
+              echo "status=TIMEOUT" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+            echo "Analysis not ready yet, waiting ${SLEEP_SECONDS}s..."
+            sleep $SLEEP_SECONDS
+          done
 
       - name: Quality Gate Check
         id: quality-gate
-        continue-on-error: true
-        uses: SonarSource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          QG_STATUS: ${{ steps.sonar-wait.outputs.status }}
+        run: |
+          echo "Quality Gate status: $QG_STATUS"
+          if [ "$QG_STATUS" == "OK" ]; then
+            echo "Quality Gate PASSED"
+            echo "outcome=success" >> $GITHUB_OUTPUT
+          else
+            echo "Quality Gate FAILED"
+            echo "outcome=failure" >> $GITHUB_OUTPUT
+          fi
 
       - name: Check if Devin Remediation Commit
         id: check-devin
@@ -78,7 +95,7 @@ jobs:
 
       - name: Get Changed Files
         id: changed-files
-        if: steps.quality-gate.outcome == 'failure'
+        if: steps.quality-gate.outputs.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           API_URL: ${{ github.api_url }}
@@ -94,7 +111,7 @@ jobs:
 
       - name: Extract SonarCloud Issues
         id: extract-issues
-        if: steps.quality-gate.outcome == 'failure'
+        if: steps.quality-gate.outputs.outcome == 'failure'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
@@ -139,7 +156,7 @@ jobs:
       - name: Trigger Devin Remediation
         id: trigger-devin
         if: |
-          steps.quality-gate.outcome == 'failure' &&
+          steps.quality-gate.outputs.outcome == 'failure' &&
           steps.check-devin.outputs.is_devin_commit == 'false'
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
@@ -159,8 +176,7 @@ jobs:
           INPUT_CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
           echo "Triggering Devin AI for vulnerability remediation..."
-          PROMPT=$(cat <<PROMPT_EOF
-          # SonarQube Vulnerability Remediation - PR #${PR_NUMBER}
+          PROMPT="# SonarQube Vulnerability Remediation - PR #${PR_NUMBER}
 
           ## Context
           SonarCloud detected security vulnerabilities in PR #${PR_NUMBER} on branch ${HEAD_REF} of ${REPO}.
@@ -194,9 +210,8 @@ jobs:
           ## Important
           - Do NOT use gh pr view or any interactive GitHub CLI commands.
           - Use git diff --name-only to verify which files you changed.
-          - Tag your commit with [devin-fix] so the workflow does not re-trigger.
-          PROMPT_EOF
-          )
+          - Tag your commit with [devin-fix] so the workflow does not re-trigger."
+
           DEVIN_RESPONSE=$(curl -s -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
             -H "Content-Type: application/json" \
@@ -217,8 +232,22 @@ jobs:
             exit 1
           fi
           echo "Devin session created: $SESSION_URL"
-          COMMENT_BODY=$(cat <<COMMENT_EOF
-          ## Devin AI - Automated Vulnerability Remediation
+          echo "session_url=$SESSION_URL" >> $GITHUB_OUTPUT
+
+      - name: Post PR Comment
+        if: steps.trigger-devin.outputs.session_url != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          SESSION_URL: ${{ steps.trigger-devin.outputs.session_url }}
+          INPUT_VULNERABILITIES: ${{ steps.extract-issues.outputs.vulnerabilities }}
+          INPUT_BUGS: ${{ steps.extract-issues.outputs.bugs }}
+          INPUT_CODE_SMELLS: ${{ steps.extract-issues.outputs.code_smells }}
+          INPUT_SECURITY_HOTSPOTS: ${{ steps.extract-issues.outputs.security_hotspots }}
+        run: |
+          COMMENT_BODY="## Devin AI - Automated Vulnerability Remediation
 
           SonarCloud Quality Gate **failed** on this PR. A Devin session has been created to automatically remediate the detected issues.
 
@@ -232,9 +261,8 @@ jobs:
           **Devin Session:** [Monitor progress](${SESSION_URL})
           **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=COG-GTM_etl-pipeline-demo&pullRequest=${PR_NUMBER})
 
-          Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes.
-          COMMENT_EOF
-          )
+          Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes."
+
           curl -s -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
@@ -242,7 +270,7 @@ jobs:
             -d "$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')"
 
       - name: Quality Gate Result
-        if: steps.quality-gate.outcome == 'failure'
+        if: steps.quality-gate.outputs.outcome == 'failure'
         env:
           IS_DEVIN_COMMIT: ${{ steps.check-devin.outputs.is_devin_commit }}
         run: |
