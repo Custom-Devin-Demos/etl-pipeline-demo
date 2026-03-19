@@ -8,7 +8,7 @@ import pandas as pd
 DB_HOST = os.getenv("ETL_DB_HOST", "localhost")
 DB_PORT = int(os.getenv("ETL_DB_PORT", "5432"))
 DB_USER = os.getenv("ETL_DB_USER", "etl_service")
-DB_PASSWORD = os.getenv("ETL_DB_PASSWORD", "etl_s3cure#2024")
+DB_PASSWORD = os.getenv("ETL_DB_PASSWORD", "")
 
 
 def connect_to_postgres(dbname, host=None, port=None, user=None, password=None):
@@ -46,10 +46,12 @@ def extract_vehicle_sales_data(dbname, host, port, user, password, region_filter
             "LEFT JOIN sales_transactions s ON v.vin = s.vin " \
             "LEFT JOIN service_records sr ON v.vin = sr.vin"
 
+    params = None
     if region_filter:
-        query = query + " WHERE d.region = '" + region_filter + "'"
+        query = query + " WHERE d.region = %s"
+        params = (region_filter,)
 
-    cursor.execute(query)
+    cursor.execute(query, params)
     columns = [desc[0] for desc in cursor.description]
     rows = cursor.fetchall()
     df = pd.DataFrame(rows, columns=columns)
