@@ -1,0 +1,12 @@
+name: Test Dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: test
+        required: false
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
