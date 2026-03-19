@@ -3,8 +3,9 @@ name: SonarQube Security Scan
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  repository_dispatch:
-    types: [sonar-scan]
+  push:
+    branches:
+      - 'demo/**'
 
 jobs:
   sonarqube-scan:
@@ -15,11 +16,38 @@ jobs:
       pull-requests: write
 
     steps:
+      - name: Lookup PR from branch (push events)
+        id: lookup-pr
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          echo "Looking up PR for branch $BRANCH..."
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+              "$API_URL/repos/$REPO/pulls?head=COG-GTM:$BRANCH&state=open")
+            PR_NUM=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
+            if [ -n "$PR_NUM" ]; then
+              echo "Found PR #$PR_NUM for branch $BRANCH"
+              echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+              echo "pr_branch=$BRANCH" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Attempt $i: No PR found yet, waiting 10s..."
+            sleep 10
+          done
+          echo "No PR found for branch $BRANCH after 10 attempts — skipping."
+          echo "pr_number=" >> $GITHUB_OUTPUT
+          exit 1
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.client_payload.pr_branch || github.event.pull_request.head.ref }}
+          ref: ${{ steps.lookup-pr.outputs.pr_branch || github.event.pull_request.head.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -50,7 +78,7 @@ jobs:
       - name: Check if Devin Remediation Commit
         id: check-devin
         env:
-          HEAD_REF: ${{ github.event.client_payload.pr_branch || github.head_ref }}
+          HEAD_REF: ${{ steps.lookup-pr.outputs.pr_branch || github.head_ref }}
         run: |
           git fetch origin "$HEAD_REF"
           COMMIT_AUTHOR=$(git log -1 --format='%an' "origin/$HEAD_REF")
@@ -73,7 +101,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           API_URL: ${{ github.api_url }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.client_payload.pr_number || github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.lookup-pr.outputs.pr_number || github.event.pull_request.number }}
         run: |
           CHANGED_FILES=$(curl -s \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -87,7 +115,7 @@ jobs:
         if: steps.quality-gate.outcome == 'failure'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          PR_NUMBER: ${{ github.event.client_payload.pr_number || github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.lookup-pr.outputs.pr_number || github.event.pull_request.number }}
         run: |
           echo "Extracting issues from SonarCloud for PR #$PR_NUMBER..."
 
@@ -144,11 +172,11 @@ jobs:
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_REF: ${{ github.event.client_payload.pr_branch || github.head_ref }}
+          HEAD_REF: ${{ steps.lookup-pr.outputs.pr_branch || github.head_ref }}
           REPO: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
           API_URL: ${{ github.api_url }}
-          PR_NUMBER: ${{ github.event.client_payload.pr_number || github.event.pull_request.number }}
+          PR_NUMBER: ${{ steps.lookup-pr.outputs.pr_number || github.event.pull_request.number }}
           INPUT_TOTAL_ISSUES: ${{ steps.extract-issues.outputs.total_issues }}
           INPUT_VULNERABILITIES: ${{ steps.extract-issues.outputs.vulnerabilities }}
           INPUT_BUGS: ${{ steps.extract-issues.outputs.bugs }}
