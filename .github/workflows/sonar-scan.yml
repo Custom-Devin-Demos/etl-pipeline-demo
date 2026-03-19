@@ -6,6 +6,14 @@ on:
   push:
     branches:
       - 'demo/**'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to scan'
+        required: true
+      pr_branch:
+        description: 'PR branch name'
+        required: true
 
 jobs:
   sonarqube-scan:
@@ -16,15 +24,26 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Lookup PR from branch (push events)
+      - name: Lookup PR from branch (push/dispatch events)
         id: lookup-pr
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           API_URL: ${{ github.api_url }}
           REPO: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          INPUT_PR_BRANCH: ${{ github.event.inputs.pr_branch }}
         run: |
+          # For workflow_dispatch, inputs are passed directly
+          if [ -n "$INPUT_PR_NUMBER" ] && [ -n "$INPUT_PR_BRANCH" ]; then
+            echo "Using workflow_dispatch inputs: PR #$INPUT_PR_NUMBER on $INPUT_PR_BRANCH"
+            echo "pr_number=$INPUT_PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "pr_branch=$INPUT_PR_BRANCH" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # For push events, look up the PR from the branch name
           echo "Looking up PR for branch $BRANCH..."
           for i in 1 2 3 4 5 6 7 8 9 10; do
             PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
