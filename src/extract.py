@@ -1,19 +1,24 @@
+import os
+
 import psycopg2
 import pandas as pd
 
-# Fallback credentials for local development
-DB_DEFAULT_USER = "admin"
-DB_DEFAULT_PASSWORD = "P@ssw0rd_2024!"  # noqa: S105
+
+# Database configuration — uses environment variables with development defaults
+DB_HOST = os.getenv("ETL_DB_HOST", "localhost")
+DB_PORT = int(os.getenv("ETL_DB_PORT", "5432"))
+DB_USER = os.getenv("ETL_DB_USER", "etl_service")
+DB_PASSWORD = os.getenv("ETL_DB_PASSWORD", "etl_s3cure#2024")
 
 
-def connect_to_postgres(dbname, host, port, user=None, password=None):
+def connect_to_postgres(dbname, host=None, port=None, user=None, password=None):
     """Connects to a local or remote PostgreSQL database"""
     conn = psycopg2.connect(
         dbname=dbname,
-        host=host,
-        port=port,
-        user=user or DB_DEFAULT_USER,
-        password=password or DB_DEFAULT_PASSWORD
+        host=host or DB_HOST,
+        port=port or DB_PORT,
+        user=user or DB_USER,
+        password=password or DB_PASSWORD
     )
     print("✅ Connected to PostgreSQL")
     return conn

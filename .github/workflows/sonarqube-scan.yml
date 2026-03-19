@@ -169,46 +169,41 @@ jobs:
           echo "Triggering Devin AI for vulnerability remediation..."
 
           PROMPT="# SonarQube Vulnerability Remediation — PR #${PR_NUMBER}
-
-## Context
-SonarCloud detected security vulnerabilities in PR #${PR_NUMBER} on branch \`${HEAD_REF}\` of \`${REPO}\`.
-
-The Quality Gate **FAILED**. You must fix the issues so the gate passes on re-scan.
-
-## Issue Summary
-- Vulnerabilities: ${INPUT_VULNERABILITIES}
-- Bugs: ${INPUT_BUGS}
-- Code Smells: ${INPUT_CODE_SMELLS}
-- Security Hotspots: ${INPUT_SECURITY_HOTSPOTS}
-- Total: ${INPUT_TOTAL_ISSUES}
-
-## Failed Quality Gate Conditions
-\`\`\`json
-${INPUT_FAILED_CONDITIONS}
-\`\`\`
-
-## Detected Issues
-\`\`\`json
-${INPUT_ISSUE_DETAILS}
-\`\`\`
-
-## Changed Files in This PR
-${INPUT_CHANGED_FILES}
-
-## Instructions
-
-1. Clone the repo and check out the branch \`${HEAD_REF}\`.
-2. Focus ONLY on files changed in this PR: ${INPUT_CHANGED_FILES}
-3. For each vulnerability or bug, apply the secure fix (e.g. parameterized queries for SQL injection, proper input validation, safe deserialization, etc.).
-4. After fixing, run any available linters or tests to make sure nothing is broken.
-5. Commit all fixes in a SINGLE commit with message: \`fix: [devin-fix] Remediate SonarQube vulnerabilities in PR #${PR_NUMBER}\`
-6. Push to the branch \`${HEAD_REF}\`. Do NOT create a new PR.
-7. Post a comment on PR #${PR_NUMBER} in \`${REPO}\` explaining what you fixed and why.
-
-## Important
-- Do NOT use \`gh pr view\` or any interactive GitHub CLI commands.
-- Use \`git diff --name-only\` to verify which files you changed.
-- Tag your commit with [devin-fix] so the workflow does not re-trigger."
+          
+          ## Context
+          SonarCloud detected security vulnerabilities in PR #${PR_NUMBER} on branch ${HEAD_REF} of ${REPO}.
+          
+          The Quality Gate **FAILED**. You must fix the issues so the gate passes on re-scan.
+          
+          ## Issue Summary
+          - Vulnerabilities: ${INPUT_VULNERABILITIES}
+          - Bugs: ${INPUT_BUGS}
+          - Code Smells: ${INPUT_CODE_SMELLS}
+          - Security Hotspots: ${INPUT_SECURITY_HOTSPOTS}
+          - Total: ${INPUT_TOTAL_ISSUES}
+          
+          ## Failed Quality Gate Conditions
+          ${INPUT_FAILED_CONDITIONS}
+          
+          ## Detected Issues
+          ${INPUT_ISSUE_DETAILS}
+          
+          ## Changed Files in This PR
+          ${INPUT_CHANGED_FILES}
+          
+          ## Instructions
+          1. Clone the repo and check out the branch ${HEAD_REF}.
+          2. Focus ONLY on files changed in this PR: ${INPUT_CHANGED_FILES}
+          3. For each vulnerability or bug, apply the secure fix (e.g. parameterized queries for SQL injection, proper input validation, safe deserialization, etc.).
+          4. After fixing, run any available linters or tests to make sure nothing is broken.
+          5. Commit all fixes in a SINGLE commit with message: fix: [devin-fix] Remediate SonarQube vulnerabilities in PR #${PR_NUMBER}
+          6. Push to the branch ${HEAD_REF}. Do NOT create a new PR.
+          7. Post a comment on PR #${PR_NUMBER} in ${REPO} explaining what you fixed and why.
+          
+          ## Important
+          - Do NOT use gh pr view or any interactive GitHub CLI commands.
+          - Use git diff --name-only to verify which files you changed.
+          - Tag your commit with [devin-fix] so the workflow does not re-trigger."
 
           DEVIN_RESPONSE=$(curl -s -X POST "https://api.devin.ai/v1/sessions" \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
@@ -234,22 +229,21 @@ ${INPUT_CHANGED_FILES}
 
           echo "Devin session created: $SESSION_URL"
 
-          # Post PR comment
           COMMENT_BODY="## Devin AI — Automated Vulnerability Remediation
-
-SonarCloud Quality Gate **failed** on this PR. A Devin session has been created to automatically remediate the detected issues.
-
-| Category | Count |
-|----------|-------|
-| Vulnerabilities | ${INPUT_VULNERABILITIES} |
-| Bugs | ${INPUT_BUGS} |
-| Code Smells | ${INPUT_CODE_SMELLS} |
-| Security Hotspots | ${INPUT_SECURITY_HOTSPOTS} |
-
-**Devin Session:** [Monitor progress](${SESSION_URL})
-**SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=COG-GTM_etl-pipeline-demo&pullRequest=${PR_NUMBER})
-
-Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes."
+          
+          SonarCloud Quality Gate **failed** on this PR. A Devin session has been created to automatically remediate the detected issues.
+          
+          | Category | Count |
+          |----------|-------|
+          | Vulnerabilities | ${INPUT_VULNERABILITIES} |
+          | Bugs | ${INPUT_BUGS} |
+          | Code Smells | ${INPUT_CODE_SMELLS} |
+          | Security Hotspots | ${INPUT_SECURITY_HOTSPOTS} |
+          
+          **Devin Session:** [Monitor progress](${SESSION_URL})
+          **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=COG-GTM_etl-pipeline-demo&pullRequest=${PR_NUMBER})
+          
+          Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes."
 
           curl -s -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
