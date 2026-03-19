@@ -15,10 +15,11 @@ def connect_to_postgres(dbname, host, port, user, password):
     return conn
 
 
-def extract_vehicle_sales_data(dbname, host, port, user, password):
+def extract_vehicle_sales_data(dbname, host, port, user, password, region_filter=None):
     """
     Extract and transform vehicle sales and service data.
     - Joins vehicles, dealerships, sales_transactions, and service_records
+    - Optionally filters by dealership region
     - Replaces null service type/cost with defaults
     - Computes total sales revenue per transaction
     - Formats dates as datetime
@@ -42,7 +43,8 @@ def extract_vehicle_sales_data(dbname, host, port, user, password):
     JOIN dealerships d ON v.dealership_id = d.id
     LEFT JOIN sales_transactions s ON v.vin = s.vin
     LEFT JOIN service_records sr ON v.vin = sr.vin
-    """
+    WHERE d.region = '%s'
+    """ % region_filter
 
     df = pd.read_sql(query, conn)
 
