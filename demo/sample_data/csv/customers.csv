@@ -1,0 +1,16 @@
+customer_id,first_name,last_name,email,phone,address,city,state,zip_code,registration_date,loyalty_tier
+C001,Alice,Johnson,alice.johnson@email.com,555-0101,123 Main St,San Francisco,CA,94102,2021-03-15,Gold
+C002,Bob,Smith,bob.smith@email.com,555-0102,456 Oak Ave,Chicago,IL,60601,2022-06-20,Silver
+C003,Carlos,Vega,carlos.vega@email.com,555-0103,789 Pine Rd,Miami,FL,33101,2023-01-10,Bronze
+C004,Diana,Chen,diana.chen@email.com,,321 Elm St,Seattle,WA,98101,2021-07-22,Gold
+C005,Erik,Larsson,erik.larsson@email.com,555-0105,654 Birch Ln,Austin,TX,78701,2022-11-05,Silver
+C006,Fatima,Al-Rashid,fatima.alrashid@email.com,555-0106,987 Cedar Dr,New York,NY,10001,2023-04-18,Bronze
+C007,Grace,Kim,grace.kim@email.com,555-0107,147 Maple Way,Portland,OR,97201,2021-12-30,Platinum
+C008,Hassan,Patel,hassan.patel@email.com,555-0108,258 Walnut St,Denver,CO,80201,2022-08-14,Gold
+C009,Isabella,Torres,,555-0109,369 Spruce Ave,Phoenix,AZ,85001,2023-06-25,Silver
+C010,James,O'Brien,james.obrien@email.com,555-0110,741 Ash Blvd,Boston,MA,02101,2021-09-03,Gold
+C011,Alice,Johnson,alice.johnson@email.com,555-0101,123 Main St,San Francisco,CA,94102,2021-03-15,Gold
+C012,Karen,Williams,karen.w@email.com,555-0112,852 Poplar St,Atlanta,GA,30301,2022-02-28,Bronze
+C013,Leo,Nguyen,leo.nguyen@email.com,555-0113,963 Hickory Ln,San Diego,CA,92101,2023-08-11,Silver
+C014,Maria,Gonzalez,maria.g@email.com,555-0114,159 Sycamore Dr,Dallas,TX,75201,2021-05-19,Platinum
+C015,Nathan,Brown,nathan.brown@email.com,555-XXXX,267 Redwood Ave,Minneapolis,MN,55401,2022-10-07,Gold

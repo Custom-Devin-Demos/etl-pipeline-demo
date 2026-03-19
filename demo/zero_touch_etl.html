@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devin Zero-Touch ETL | End-to-End Data Engineering Automation</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#0F172A;--bg-card:#1E293B;--bg-card-alt:#243449;
+  --text-primary:#FFFFFF;--text-secondary:#CBD5E1;--text-muted:#94A3B8;--text-header:#E2E8F0;
+  --accent-teal:#22D3EE;--accent-blue:#60A5FA;--accent-indigo:#818CF8;--accent-purple:#A78BFA;
+  --accent-red:#F87171;--accent-green:#4ADE80;
+  --radius:12px;--spacing:24px;--spacing-sm:16px;
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg-primary);color:var(--text-primary);line-height:1.6}
+a{color:var(--accent-teal);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.container{max-width:1200px;margin:0 auto;padding:0 var(--spacing)}
+
+/* Header */
+.header{position:sticky;top:0;z-index:50;backdrop-filter:blur(16px);background:rgba(15,23,42,0.95);border-bottom:1px solid rgba(255,255,255,0.05);padding:16px 0}
+.header-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent-teal),var(--accent-indigo));border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff}
+.logo-text{font-size:20px;font-weight:700;letter-spacing:-0.5px}
+.logo-text span{background:linear-gradient(90deg,var(--accent-teal),var(--accent-blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-badge{background:var(--bg-card);border:1px solid rgba(34,211,238,0.3);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--accent-teal);font-weight:500}
+.nav{display:flex;gap:24px;list-style:none}
+.nav a{color:var(--text-muted);font-size:14px;font-weight:500;transition:color 0.2s}
+.nav a:hover{color:var(--text-primary);text-decoration:none}
+
+/* Hero */
+.hero{padding:80px 0 60px;text-align:center}
+.hero-eyebrow{display:inline-block;background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.2);border-radius:20px;padding:6px 20px;font-size:13px;color:var(--accent-teal);font-weight:600;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px}
+.hero h1{font-size:56px;font-weight:800;letter-spacing:-2px;line-height:1.1;margin-bottom:20px}
+.hero h1 span{background:linear-gradient(90deg,var(--accent-teal),var(--accent-blue),var(--accent-indigo));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:20px;color:var(--text-secondary);max-width:700px;margin:0 auto 40px;line-height:1.7}
+.hero-cta{display:flex;gap:16px;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:600;border:none;cursor:pointer;transition:all 0.3s}
+.btn-primary{background:linear-gradient(135deg,var(--accent-teal),var(--accent-blue));color:#0F172A}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(34,211,238,0.3)}
+.btn-secondary{background:var(--bg-card);color:var(--text-primary);border:1px solid rgba(255,255,255,0.1)}
+.btn-secondary:hover{border-color:var(--accent-teal)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin:-30px 0 60px}
+.stat-card{background:var(--bg-card);border-radius:var(--radius);padding:var(--spacing);text-align:center;border:1px solid rgba(255,255,255,0.05);transition:all 0.3s}
+.stat-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3);border-color:rgba(34,211,238,0.2)}
+.stat-value{font-size:42px;font-weight:800;margin-bottom:4px}
+.stat-value.teal{color:var(--accent-teal)}.stat-value.blue{color:var(--accent-blue)}.stat-value.indigo{color:var(--accent-indigo)}.stat-value.green{color:var(--accent-green)}
+.stat-label{font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:600}
+
+/* Sections */
+.section{padding:60px 0}
+.section-header{text-align:center;margin-bottom:48px}
+.section-header h2{font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:12px}
+.section-header p{font-size:17px;color:var(--text-secondary);max-width:600px;margin:0 auto}
+.section-eyebrow{display:inline-block;font-size:12px;color:var(--accent-teal);font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+
+/* Phase Cards */
+.phase-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.phase-card{background:var(--bg-card);border-radius:var(--radius);padding:var(--spacing);border:1px solid rgba(255,255,255,0.05);transition:all 0.3s;position:relative;overflow:hidden}
+.phase-card:hover{border-color:rgba(34,211,238,0.2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,0.2)}
+.phase-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent-teal),var(--accent-indigo));opacity:0;transition:opacity 0.3s}
+.phase-card:hover::before{opacity:1}
+.phase-number{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;font-size:14px;font-weight:700;margin-bottom:16px}
+.phase-number.c1{background:rgba(34,211,238,0.15);color:var(--accent-teal)}
+.phase-number.c2{background:rgba(96,165,250,0.15);color:var(--accent-blue)}
+.phase-number.c3{background:rgba(129,140,248,0.15);color:var(--accent-indigo)}
+.phase-number.c4{background:rgba(167,139,250,0.15);color:var(--accent-purple)}
+.phase-number.c5{background:rgba(74,222,128,0.15);color:var(--accent-green)}
+.phase-number.c6{background:rgba(248,113,113,0.15);color:var(--accent-red)}
+.phase-card h3{font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:-0.3px}
+.phase-card p{color:var(--text-secondary);font-size:14px;line-height:1.7;margin-bottom:16px}
+.phase-tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:rgba(255,255,255,0.05);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text-muted);font-weight:500}
+
+/* Agent Personas */
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.agent-card{background:var(--bg-card);border-radius:var(--radius);padding:var(--spacing);text-align:center;border:1px solid rgba(255,255,255,0.05);transition:all 0.3s}
+.agent-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.agent-icon{width:64px;height:64px;border-radius:16px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px}
+.agent-icon.architect{background:linear-gradient(135deg,rgba(34,211,238,0.2),rgba(34,211,238,0.05))}
+.agent-icon.developer{background:linear-gradient(135deg,rgba(96,165,250,0.2),rgba(96,165,250,0.05))}
+.agent-icon.qa{background:linear-gradient(135deg,rgba(74,222,128,0.2),rgba(74,222,128,0.05))}
+.agent-icon.pm{background:linear-gradient(135deg,rgba(167,139,250,0.2),rgba(167,139,250,0.05))}
+.agent-card h4{font-size:18px;font-weight:700;margin-bottom:6px}
+.agent-card .role{font-size:12px;color:var(--accent-teal);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.agent-card p{font-size:13px;color:var(--text-secondary);line-height:1.6}
+
+/* Comparison Table */
+.comparison-wrap{overflow-x:auto}
+table.comparison{width:100%;border-collapse:separate;border-spacing:0;border-radius:var(--radius);overflow:hidden}
+table.comparison th{background:var(--bg-card);color:var(--text-header);padding:16px 20px;text-align:left;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid rgba(34,211,238,0.2)}
+table.comparison td{padding:14px 20px;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.03)}
+table.comparison tr:nth-child(odd) td{background:var(--bg-card)}
+table.comparison tr:nth-child(even) td{background:var(--bg-card-alt)}
+table.comparison td:first-child{font-weight:600;color:var(--text-primary)}
+.check{color:var(--accent-green);font-weight:700;font-size:16px}
+.cross{color:var(--accent-red);font-weight:700;font-size:16px}
+.partial{color:var(--accent-blue);font-weight:600}
+
+/* Pipeline Flow */
+.pipeline-flow{display:flex;align-items:center;gap:0;padding:40px 0;overflow-x:auto}
+.pipeline-step{flex:1;min-width:120px;text-align:center;position:relative}
+.pipeline-step .dot{width:48px;height:48px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;border:2px solid}
+.pipeline-step:nth-child(1) .dot{background:rgba(34,211,238,0.15);border-color:var(--accent-teal);color:var(--accent-teal)}
+.pipeline-step:nth-child(2) .dot{background:rgba(96,165,250,0.15);border-color:var(--accent-blue);color:var(--accent-blue)}
+.pipeline-step:nth-child(3) .dot{background:rgba(129,140,248,0.15);border-color:var(--accent-indigo);color:var(--accent-indigo)}
+.pipeline-step:nth-child(4) .dot{background:rgba(167,139,250,0.15);border-color:var(--accent-purple);color:var(--accent-purple)}
+.pipeline-step:nth-child(5) .dot{background:rgba(74,222,128,0.15);border-color:var(--accent-green);color:var(--accent-green)}
+.pipeline-step:nth-child(6) .dot{background:rgba(34,211,238,0.15);border-color:var(--accent-teal);color:var(--accent-teal)}
+.pipeline-step:nth-child(7) .dot{background:rgba(96,165,250,0.15);border-color:var(--accent-blue);color:var(--accent-blue)}
+.pipeline-step .label{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.pipeline-step .sublabel{font-size:11px;color:var(--text-muted);margin-top:4px}
+.pipeline-arrow{width:40px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:20px;flex-shrink:0;margin-top:-30px}
+
+/* Playbook */
+.playbook-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.playbook-card{background:var(--bg-card);border-radius:var(--radius);padding:var(--spacing);border:1px solid rgba(255,255,255,0.05);transition:all 0.3s}
+.playbook-card:hover{border-color:rgba(34,211,238,0.2);transform:translateY(-2px)}
+.playbook-card h4{font-size:18px;font-weight:700;margin-bottom:8px}
+.playbook-card p{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:16px}
+.playbook-steps{list-style:none;counter-reset:step}
+.playbook-steps li{counter-increment:step;padding:8px 0 8px 36px;font-size:13px;color:var(--text-secondary);position:relative;border-left:2px solid rgba(255,255,255,0.05);margin-left:12px}
+.playbook-steps li::before{content:counter(step);position:absolute;left:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg-primary);border:2px solid var(--accent-teal);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent-teal)}
+
+/* Code block */
+.code-block{background:#0D1117;border-radius:10px;padding:20px;overflow-x:auto;margin:24px 0;border:1px solid rgba(255,255,255,0.05)}
+.code-block pre{font-family:'Fira Code','JetBrains Mono',monospace;font-size:13px;line-height:1.8;color:var(--text-secondary)}
+.code-block .comment{color:var(--text-muted)}
+.code-block .keyword{color:var(--accent-indigo)}
+.code-block .string{color:var(--accent-green)}
+.code-block .function{color:var(--accent-teal)}
+
+/* Highlight card */
+.highlight-card{background:linear-gradient(135deg,rgba(34,211,238,0.1),rgba(129,140,248,0.1));border:1px solid rgba(34,211,238,0.2);border-radius:var(--radius);padding:32px;margin:40px 0}
+.highlight-card h3{font-size:24px;font-weight:700;margin-bottom:12px}
+.highlight-card p{color:var(--text-secondary);font-size:15px;line-height:1.7}
+
+/* Quality Dimensions */
+.quality-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:32px}
+.quality-item{background:var(--bg-card);border-radius:var(--radius);padding:20px}
+.quality-item h5{font-size:15px;font-weight:700;margin-bottom:6px}
+.quality-item p{font-size:12px;color:var(--text-muted);line-height:1.5}
+.quality-bar{height:6px;background:rgba(255,255,255,0.05);border-radius:3px;margin-top:12px;overflow:hidden}
+.quality-bar-fill{height:100%;border-radius:3px;transition:width 1s ease-out}
+
+/* Domain Learning */
+.domain-features{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-top:32px}
+.domain-feature{display:flex;gap:16px;align-items:flex-start}
+.domain-feature .icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+
+/* Footer */
+.footer{padding:48px 0;border-top:1px solid rgba(255,255,255,0.05);margin-top:60px;text-align:center}
+.footer p{color:var(--text-muted);font-size:13px}
+
+/* Responsive */
+@media(max-width:900px){
+  .hero h1{font-size:36px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .phase-grid,.agent-grid{grid-template-columns:1fr}
+  .playbook-grid{grid-template-columns:1fr}
+  .quality-grid{grid-template-columns:1fr}
+  .domain-features{grid-template-columns:1fr}
+  .pipeline-flow{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <div class="logo">
+      <div class="logo-icon">D</div>
+      <div class="logo-text"><span>Devin</span> Zero-Touch ETL</div>
+    </div>
+    <nav>
+      <ul class="nav">
+        <li><a href="#pipeline">Pipeline</a></li>
+        <li><a href="#agents">Agents</a></li>
+        <li><a href="#playbooks">Playbooks</a></li>
+        <li><a href="#comparison">Comparison</a></li>
+      </ul>
+    </nav>
+    <div class="header-badge">Cognition AI</div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Zero-Touch Data Engineering</div>
+    <h1>End-to-End ETL<br><span>Fully Automated by Devin</span></h1>
+    <p>From raw data discovery to production-ready pipelines, Devin automates the entire data engineering lifecycle with zero manual configuration. Multi-agent orchestration, intelligent quality gates, and persistent domain learning.</p>
+    <div class="hero-cta">
+      <a href="#pipeline" class="btn btn-primary">View the Pipeline</a>
+      <a href="#comparison" class="btn btn-secondary">Devin vs Claude Code</a>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section>
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value teal">8</div>
+        <div class="stat-label">Automated Phases</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value blue">4</div>
+        <div class="stat-label">Agent Personas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value indigo">7</div>
+        <div class="stat-label">Data Sources Profiled</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value green">0</div>
+        <div class="stat-label">Manual Config Steps</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pipeline Flow -->
+<section id="pipeline" class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Automated Pipeline</div>
+      <h2>The Zero-Touch ETL Lifecycle</h2>
+      <p>Devin orchestrates every stage of the data engineering lifecycle, from source discovery through production-ready pipeline deployment.</p>
+    </div>
+    <div class="pipeline-flow">
+      <div class="pipeline-step"><div class="dot">1</div><div class="label">Discover</div><div class="sublabel">Source Detection</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">2</div><div class="label">Profile</div><div class="sublabel">Schema & Stats</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">3</div><div class="label">Quality</div><div class="sublabel">6-D Scoring</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">4</div><div class="label">Model</div><div class="sublabel">Star Schema</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">5</div><div class="label">Generate</div><div class="sublabel">Pipeline Code</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">6</div><div class="label">Orchestrate</div><div class="sublabel">Multi-Agent</div></div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step"><div class="dot">7</div><div class="label">Deploy</div><div class="sublabel">Production</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 Phases -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Demo Walkthrough</div>
+      <h2>8 Phases of Zero-Touch ETL</h2>
+      <p>Each phase runs autonomously. Devin makes every decision, from format detection to DDL generation.</p>
+    </div>
+    <div class="phase-grid">
+      <div class="phase-card">
+        <div class="phase-number c1">1</div>
+        <h3>Source Data Understanding & Profiling</h3>
+        <p>Devin auto-discovers and connects to data sources regardless of format (CSV, JSON, XML, API). It performs statistical profiling, semantic type detection (emails, phones, dates, IDs), and infers column roles (identifier, categorical, text, numeric). All profiling happens without any manual schema mapping.</p>
+        <div class="phase-tags"><span class="tag">CSV</span><span class="tag">JSON</span><span class="tag">XML</span><span class="tag">API</span><span class="tag">Auto-Schema</span><span class="tag">DDL Generation</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c2">2</div>
+        <h3>Data Quality Measurement</h3>
+        <p>Comprehensive quality scoring across six dimensions: completeness, uniqueness, consistency, validity, timeliness, and accuracy. Each source receives a 0-100 quality score with a letter grade (A-F). The engine intelligently distinguishes primary keys from foreign keys, avoiding false penalties.</p>
+        <div class="phase-tags"><span class="tag">Completeness</span><span class="tag">Uniqueness</span><span class="tag">Consistency</span><span class="tag">Validity</span><span class="tag">Timeliness</span><span class="tag">Accuracy</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c3">3</div>
+        <h3>Target Data Model Design</h3>
+        <p>Automatically translates source data profiles into an optimized target model. Devin infers star schemas (fact vs dimension tables), detects foreign key relationships, designs aggregation tables for analytics, and adds SCD Type 2 slowly-changing dimension support with full audit columns.</p>
+        <div class="phase-tags"><span class="tag">Star Schema</span><span class="tag">FK Detection</span><span class="tag">SCD Type 2</span><span class="tag">Aggregations</span><span class="tag">DDL</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c4">4</div>
+        <h3>Automated Pipeline Development</h3>
+        <p>Pipeline configuration and executable Python code are auto-generated from the combination of source profiles, quality reports, and target model. Extraction strategy adapts to data volume (full load vs chunked). Cleaning steps are derived directly from quality findings.</p>
+        <div class="phase-tags"><span class="tag">Auto-Generated</span><span class="tag">Python</span><span class="tag">Retry Logic</span><span class="tag">Parallelism</span><span class="tag">Validation</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c5">5</div>
+        <h3>Multi-Agent Orchestration</h3>
+        <p>Four specialized agent personas coordinate sequentially, each with distinct responsibilities and a full audit trail. The Architect designs, the Developer builds, QA validates, and the PM tracks progress. Every action is logged for complete traceability.</p>
+        <div class="phase-tags"><span class="tag">Architect</span><span class="tag">Developer</span><span class="tag">QA</span><span class="tag">PM</span><span class="tag">Audit Trail</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c6">6</div>
+        <h3>Reusable Playbooks</h3>
+        <p>Three executable playbook templates that encode best practices: Data Onboarding for new source integration, Quality Gate for threshold enforcement, and Cross-System Merge for multi-format consolidation. Playbooks are parameterized and composable.</p>
+        <div class="phase-tags"><span class="tag">Onboarding</span><span class="tag">Quality Gate</span><span class="tag">Cross-System Merge</span><span class="tag">Composable</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c1">7</div>
+        <h3>Domain Learning & Greenfield</h3>
+        <p>Devin learns the business domain directly from the data: auto-detects the domain (e-commerce, healthcare, finance), discovers entities and relationships, infers business rules from data patterns, builds a domain glossary, and persists all knowledge for future sessions.</p>
+        <div class="phase-tags"><span class="tag">Auto-Detection</span><span class="tag">Glossary</span><span class="tag">Business Rules</span><span class="tag">Persistent Knowledge</span></div>
+      </div>
+      <div class="phase-card">
+        <div class="phase-number c2">8</div>
+        <h3>Data Consolidation</h3>
+        <p>Merges data from multiple siloed systems in different formats (CSV flat files, JSON APIs, XML enterprise feeds, API responses). Full data lineage tracking through every load, join, and transformation ensures complete auditability.</p>
+        <div class="phase-tags"><span class="tag">Multi-Format</span><span class="tag">Lineage Tracking</span><span class="tag">Join Detection</span><span class="tag">Auditability</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quality Dimensions -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Data Quality</div>
+      <h2>Six-Dimensional Quality Scoring</h2>
+      <p>Every data source is evaluated across six quality dimensions, producing a composite score that gates pipeline execution.</p>
+    </div>
+    <div class="quality-grid">
+      <div class="quality-item">
+        <h5 style="color:var(--accent-teal)">Completeness</h5>
+        <p>Null analysis per-column and overall. Flags missing data hotspots and recommends imputation strategies.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:92%;background:linear-gradient(90deg,var(--accent-teal),var(--accent-blue))"></div></div>
+      </div>
+      <div class="quality-item">
+        <h5 style="color:var(--accent-blue)">Uniqueness</h5>
+        <p>Duplicate detection with intelligent PK vs FK distinction. Only true primary keys are flagged for uniqueness violations.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:88%;background:linear-gradient(90deg,var(--accent-blue),var(--accent-indigo))"></div></div>
+      </div>
+      <div class="quality-item">
+        <h5 style="color:var(--accent-indigo)">Consistency</h5>
+        <p>Value pattern analysis detects near-duplicates, casing inconsistencies, and leading/trailing whitespace across string columns.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--accent-indigo),var(--accent-purple))"></div></div>
+      </div>
+      <div class="quality-item">
+        <h5 style="color:var(--accent-purple)">Validity</h5>
+        <p>Format validation for emails, phone numbers, and numeric ranges. Detects negative values in financial columns.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:70%;background:linear-gradient(90deg,var(--accent-purple),var(--accent-red))"></div></div>
+      </div>
+      <div class="quality-item">
+        <h5 style="color:var(--accent-green)">Timeliness</h5>
+        <p>Detects future dates and stale data. Ensures temporal integrity across all date and timestamp columns.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:95%;background:linear-gradient(90deg,var(--accent-green),var(--accent-teal))"></div></div>
+      </div>
+      <div class="quality-item">
+        <h5 style="color:var(--accent-red)">Accuracy</h5>
+        <p>Statistical outlier detection using IQR method. Flags data points that deviate significantly from expected distributions.</p>
+        <div class="quality-bar"><div class="quality-bar-fill" style="width:82%;background:linear-gradient(90deg,var(--accent-red),var(--accent-purple))"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Multi-Agent -->
+<section id="agents" class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Multi-Agent Orchestration</div>
+      <h2>Four Specialized Personas</h2>
+      <p>Devin coordinates four agent personas in sequential phases, each with distinct responsibilities, decision-making authority, and complete audit trails.</p>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-card">
+        <div class="agent-icon architect">&#x1f3d7;</div>
+        <h4>Architect</h4>
+        <div class="role">Design Phase</div>
+        <p>Analyzes source schemas, designs star schema target model, generates DDL, and makes structural decisions that downstream agents follow.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon developer">&#x1f4bb;</div>
+        <h4>Developer</h4>
+        <div class="role">Build Phase</div>
+        <p>Builds extractors, implements transformations, creates loaders, and generates executable pipeline code based on the Architect's design.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon qa">&#x2705;</div>
+        <h4>QA Engineer</h4>
+        <div class="role">Validation Phase</div>
+        <p>Runs quality assessments, validates data contracts, performs integration testing, and provides sign-off before production deployment.</p>
+      </div>
+      <div class="agent-card">
+        <div class="agent-icon pm">&#x1f4ca;</div>
+        <h4>Project Manager</h4>
+        <div class="role">Coordination Phase</div>
+        <p>Tracks progress across all phases, generates executive summaries, manages risk, and ensures delivery meets stakeholder requirements.</p>
+      </div>
+    </div>
+
+    <div class="highlight-card">
+      <h3>Sequential Phase Handoffs</h3>
+      <p>Each agent completes their phase before handing off to the next. The Architect's schema design informs the Developer's pipeline code. The Developer's output feeds into QA's validation suite. The PM synthesizes all findings into a stakeholder-ready summary. Every action and decision is recorded in a full audit trail for compliance and traceability.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Playbooks -->
+<section id="playbooks" class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Reusable Workflows</div>
+      <h2>Playbook Templates</h2>
+      <p>Parameterized, composable workflows that encode data engineering best practices. Execute with a single command.</p>
+    </div>
+    <div class="playbook-grid">
+      <div class="playbook-card">
+        <h4 style="color:var(--accent-teal)">Data Onboarding</h4>
+        <p>End-to-end new source integration from discovery to production readiness.</p>
+        <ol class="playbook-steps">
+          <li>Discover source files</li>
+          <li>Auto-profile all columns</li>
+          <li>Detect and generate schema</li>
+          <li>Run quality assessment</li>
+          <li>Generate recommendations</li>
+          <li>Produce onboarding report</li>
+        </ol>
+      </div>
+      <div class="playbook-card">
+        <h4 style="color:var(--accent-blue)">Quality Gate</h4>
+        <p>Configurable quality threshold enforcement that blocks bad data from entering pipelines.</p>
+        <ol class="playbook-steps">
+          <li>Load and profile data</li>
+          <li>Run all quality checks</li>
+          <li>Evaluate against thresholds</li>
+          <li>Decision: APPROVED / CONDITIONAL / REJECTED</li>
+          <li>Generate gate report</li>
+          <li>Block on critical failures</li>
+        </ol>
+      </div>
+      <div class="playbook-card">
+        <h4 style="color:var(--accent-indigo)">Cross-System Merge</h4>
+        <p>Multi-format data consolidation from siloed systems with lineage tracking.</p>
+        <ol class="playbook-steps">
+          <li>Register all data sources</li>
+          <li>Profile each source independently</li>
+          <li>Detect common join keys</li>
+          <li>Execute consolidated merge</li>
+          <li>Run post-merge quality checks</li>
+          <li>Generate lineage report</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Domain Learning -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Intelligence</div>
+      <h2>Domain Learning & Greenfield Scenarios</h2>
+      <p>Devin learns your business domain directly from the data, building persistent knowledge that accelerates future projects.</p>
+    </div>
+    <div class="domain-features">
+      <div class="domain-feature">
+        <div class="icon" style="background:rgba(34,211,238,0.15)">&#x1f50d;</div>
+        <div>
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:4px">Auto Domain Detection</h4>
+          <p style="font-size:13px;color:var(--text-secondary)">Analyzes column names, data patterns, and entity relationships to automatically identify the business domain (e-commerce, healthcare, finance, logistics, manufacturing, retail).</p>
+        </div>
+      </div>
+      <div class="domain-feature">
+        <div class="icon" style="background:rgba(96,165,250,0.15)">&#x1f4d6;</div>
+        <div>
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:4px">Domain Glossary</h4>
+          <p style="font-size:13px;color:var(--text-secondary)">Builds a comprehensive glossary of domain terms with definitions, data types, and relationships extracted directly from the data schemas.</p>
+        </div>
+      </div>
+      <div class="domain-feature">
+        <div class="icon" style="background:rgba(129,140,248,0.15)">&#x2699;</div>
+        <div>
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:4px">Business Rule Inference</h4>
+          <p style="font-size:13px;color:var(--text-secondary)">Discovers implicit business rules from data patterns, including referential integrity constraints, value ranges, enumeration sets, and temporal dependencies.</p>
+        </div>
+      </div>
+      <div class="domain-feature">
+        <div class="icon" style="background:rgba(74,222,128,0.15)">&#x1f4be;</div>
+        <div>
+          <h4 style="font-size:16px;font-weight:700;margin-bottom:4px">Persistent Knowledge</h4>
+          <p style="font-size:13px;color:var(--text-secondary)">All domain knowledge is persisted to disk and accumulated across sessions, enabling Devin to get faster and more accurate with each project in the same domain.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How to Run -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Getting Started</div>
+      <h2>Run the Demo</h2>
+      <p>Two commands. Zero configuration. The full ETL lifecycle in under 5 seconds.</p>
+    </div>
+    <div class="code-block">
+<pre><span class="comment"># Install dependencies</span>
+<span class="function">pip</span> install -r requirements.txt
+
+<span class="comment"># Run the full interactive demo (press Enter to advance through phases)</span>
+<span class="function">python</span> -m demo.run_demo
+
+<span class="comment"># Or run in auto mode (non-interactive, no pauses)</span>
+<span class="keyword">DEMO_AUTO_RUN</span>=<span class="string">1</span> <span class="function">python</span> -m demo.run_demo</pre>
+    </div>
+    <div class="highlight-card">
+      <h3>What Happens When You Run the Demo</h3>
+      <p>Devin automatically: (1) discovers and profiles 7 data sources across 4 formats, (2) runs 6-dimensional quality scoring on each, (3) designs a star schema with fact and dimension tables, (4) generates a 17-step pipeline with executable Python code, (5) coordinates 4 agent personas through the workflow, (6) demonstrates 3 reusable playbooks, (7) learns the "e-commerce" domain from data patterns, and (8) consolidates 3 siloed systems into a unified dataset with full lineage. Total execution time: ~4 seconds.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison -->
+<section id="comparison" class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-eyebrow">Competitive Analysis</div>
+      <h2>Devin vs Claude Code & Other Tools</h2>
+      <p>Devin's zero-touch ETL goes beyond what current AI coding assistants offer for data engineering workflows.</p>
+    </div>
+    <div class="comparison-wrap">
+      <table class="comparison">
+        <thead>
+          <tr>
+            <th style="width:40%">Capability</th>
+            <th style="width:30%">Devin</th>
+            <th style="width:30%">Claude Code / Others</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Multi-agent orchestration</td>
+            <td><span class="check">&#10003;</span> Native (4 personas with audit trails)</td>
+            <td><span class="cross">&#10007;</span> Not available</td>
+          </tr>
+          <tr>
+            <td>Persistent domain learning</td>
+            <td><span class="check">&#10003;</span> Cross-session knowledge base</td>
+            <td><span class="cross">&#10007;</span> Stateless per session</td>
+          </tr>
+          <tr>
+            <td>Reusable playbooks</td>
+            <td><span class="check">&#10003;</span> Built-in, parameterized, composable</td>
+            <td><span class="partial">~</span> Manual scripts only</td>
+          </tr>
+          <tr>
+            <td>Auto pipeline generation</td>
+            <td><span class="check">&#10003;</span> End-to-end from data profiling</td>
+            <td><span class="partial">~</span> Partial, requires heavy guidance</td>
+          </tr>
+          <tr>
+            <td>Quality gate enforcement</td>
+            <td><span class="check">&#10003;</span> Integrated in pipeline lifecycle</td>
+            <td><span class="cross">&#10007;</span> Requires separate tooling</td>
+          </tr>
+          <tr>
+            <td>Multi-format consolidation</td>
+            <td><span class="check">&#10003;</span> Automatic (CSV/JSON/XML/API)</td>
+            <td><span class="partial">~</span> Manual per-format handling</td>
+          </tr>
+          <tr>
+            <td>Target model design</td>
+            <td><span class="check">&#10003;</span> Auto DDL with star schema inference</td>
+            <td><span class="cross">&#10007;</span> Manual schema design required</td>
+          </tr>
+          <tr>
+            <td>Session persistence</td>
+            <td><span class="check">&#10003;</span> Full state across sessions</td>
+            <td><span class="cross">&#10007;</span> No persistence</td>
+          </tr>
+          <tr>
+            <td>CI/CD integration</td>
+            <td><span class="check">&#10003;</span> Native GitHub/GitLab integration</td>
+            <td><span class="partial">~</span> Limited integration</td>
+          </tr>
+          <tr>
+            <td>Greenfield onboarding</td>
+            <td><span class="check">&#10003;</span> Zero-touch from raw data</td>
+            <td><span class="cross">&#10007;</span> Requires existing documentation</td>
+          </tr>
+          <tr>
+            <td>Data lineage tracking</td>
+            <td><span class="check">&#10003;</span> Full lineage per transformation</td>
+            <td><span class="cross">&#10007;</span> No built-in lineage</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section">
+  <div class="container" style="text-align:center">
+    <div class="section-eyebrow">Ready to See It Live?</div>
+    <h2 style="font-size:36px;font-weight:800;margin-bottom:16px">Experience Zero-Touch ETL</h2>
+    <p style="color:var(--text-secondary);font-size:17px;max-width:600px;margin:0 auto 32px">Run the demo yourself. See Devin profile your data, design your schema, build your pipeline, and orchestrate your agents, all without writing a single line of configuration.</p>
+    <div style="display:flex;gap:16px;justify-content:center">
+      <a href="https://github.com/COG-GTM/ETL-Pipeline/pull/35" class="btn btn-primary" target="_blank">View the PR</a>
+      <a href="https://app.devin.ai" class="btn btn-secondary" target="_blank">Try Devin</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <p>Devin Zero-Touch ETL Demo &mdash; Built by Cognition AI &mdash; End-to-End Data Engineering Automation</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+{
+  "api_version": "v2",
+  "endpoint": "/api/returns",
+  "total_records": 5,
+  "page": 1,
+  "per_page": 50,
+  "data": [
+    {
+      "return_id": "RET-2024-001",
+      "transaction_id": "T007",
+      "customer_id": "C002",
+      "product_id": "P106",
+      "return_date": "2024-02-01",
+      "reason": "defective",
+      "reason_detail": "Screen flickering after 10 days of use",
+      "refund_amount": 599.99,
+      "refund_status": "processed",
+      "condition": "defective",
+      "restockable": false
+    },
+    {
+      "return_id": "RET-2024-002",
+      "transaction_id": "T014",
+      "customer_id": "C004",
+      "product_id": "P110",
+      "return_date": "2024-02-05",
+      "reason": "wrong_item",
+      "reason_detail": "Received tablet stand instead of laptop stand",
+      "refund_amount": 199.99,
+      "refund_status": "processed",
+      "condition": "new",
+      "restockable": true
+    },
+    {
+      "return_id": "RET-2024-003",
+      "transaction_id": "T012",
+      "customer_id": "C009",
+      "product_id": "P101",
+      "return_date": "2024-02-08",
+      "reason": "not_as_described",
+      "reason_detail": "Color does not match website photo",
+      "refund_amount": 29.99,
+      "refund_status": "pending",
+      "condition": "like_new",
+      "restockable": true
+    },
+    {
+      "return_id": "RET-2024-004",
+      "transaction_id": "T003",
+      "customer_id": "C003",
+      "product_id": "P103",
+      "return_date": "2024-02-10",
+      "reason": "changed_mind",
+      "reason_detail": "No longer needed",
+      "refund_amount": 9.99,
+      "refund_status": "processed",
+      "condition": "new",
+      "restockable": true
+    },
+    {
+      "return_id": "RET-2024-005",
+      "transaction_id": "T016",
+      "customer_id": "C011",
+      "product_id": "P105",
+      "return_date": "2024-02-12",
+      "reason": "defective",
+      "reason_detail": "Battery not holding charge",
+      "refund_amount": 49.99,
+      "refund_status": "in_review",
+      "condition": "defective",
+      "restockable": false
+    }
+  ]
+}

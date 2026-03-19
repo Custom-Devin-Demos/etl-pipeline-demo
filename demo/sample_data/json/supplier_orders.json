@@ -1,0 +1,39 @@
+[
+  {
+    "order_id": "SO-2024-001",
+    "supplier": {"id": "S001", "name": "Global Electronics Supply", "country": "CN"},
+    "order_date": "2024-01-10",
+    "expected_delivery": "2024-02-15",
+    "status": "delivered",
+    "items": [
+      {"product_id": "P101", "quantity": 500, "unit_cost": 12.50, "total": 6250.00},
+      {"product_id": "P103", "quantity": 2000, "unit_cost": 2.50, "total": 5000.00},
+      {"product_id": "P109", "quantity": 300, "unit_cost": 30.00, "total": 9000.00}
+    ],
+    "shipping": {"carrier": "OceanFreight Co", "tracking": "OF-2024-88291", "cost": 1200.00}
+  },
+  {
+    "order_id": "SO-2024-002",
+    "supplier": {"id": "S002", "name": "SoundMax Manufacturing", "country": "KR"},
+    "order_date": "2024-01-20",
+    "expected_delivery": "2024-03-01",
+    "status": "in_transit",
+    "items": [
+      {"product_id": "P102", "quantity": 200, "unit_cost": 65.00, "total": 13000.00},
+      {"product_id": "P105", "quantity": 400, "unit_cost": 22.00, "total": 8800.00}
+    ],
+    "shipping": {"carrier": "AirCargo Express", "tracking": "ACE-2024-44521", "cost": 2500.00}
+  },
+  {
+    "order_id": "SO-2024-003",
+    "supplier": {"id": "S003", "name": "KeyMaster Industries", "country": "TW"},
+    "order_date": "2024-02-01",
+    "expected_delivery": "2024-03-15",
+    "status": "processing",
+    "items": [
+      {"product_id": "P104", "quantity": 100, "unit_cost": 125.00, "total": 12500.00},
+      {"product_id": "P110", "quantity": 150, "unit_cost": 85.00, "total": 12750.00}
+    ],
+    "shipping": null
+  }
+]

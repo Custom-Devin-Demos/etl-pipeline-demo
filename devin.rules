@@ -1,0 +1,238 @@
+# ETL Pipeline - Devin Rules
+
+## Project Overview
+This is an ETL (Extract, Transform, Load) pipeline that processes vehicle sales and service data from PostgreSQL and loads it to Amazon S3. The pipeline extracts data from multiple tables, performs transformations including deduplication, and uploads the cleaned data to S3.
+
+## Core Architecture
+- **Extract**: PostgreSQL → Pandas DataFrame (src/extract.py)
+- **Transform**: Data cleaning and deduplication (src/transform.py)  
+- **Load**: DataFrame → S3 CSV (src/load_data_to_s3.py)
+- **Orchestration**: main.py coordinates the entire pipeline
+
+## Development Environment Setup
+
+### Prerequisites
+- Python 3.8+
+- Docker and Docker Compose
+- AWS CLI (for S3 operations)
+- PostgreSQL (via Docker)
+
+### Local Development Commands
+```bash
+# Start PostgreSQL database
+docker-compose up -d postgres
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run ETL pipeline locally
+python main.py
+
+# Run with Docker
+docker build -t etl-pipeline .
+docker run --env-file .env etl-pipeline
+
+# Stop database
+docker-compose down
+```
+
+### Environment Variables
+Create `.env` file from `.env.example` with:
+- Database credentials (DB_NAME, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD)
+- AWS credentials (aws_access_key_id, aws_secret_access_key_id)
+
+## Code Style Guidelines
+
+### Python Standards
+- Use Python 3.8+ features
+- Follow PEP 8 style guidelines
+- Use type hints where appropriate
+- Include docstrings for all functions
+- Use f-strings for string formatting
+- Prefer list comprehensions over explicit loops when readable
+
+### File Organization
+- Keep functions focused and single-purpose
+- Use descriptive function and variable names
+- Separate concerns: extract, transform, load in different modules
+- Use relative imports within the src/ package
+
+### Error Handling
+- Use try-except blocks for external service calls (database, S3)
+- Log errors with meaningful messages
+- Handle missing data gracefully (use COALESCE in SQL, fillna() in pandas)
+- Validate input parameters
+
+## Database Guidelines
+
+### PostgreSQL Best Practices
+- Use parameterized queries to prevent SQL injection
+- Use COALESCE for handling NULL values
+- Join tables efficiently with proper indexes
+- Use appropriate data types (TEXT for VIN, NUMERIC for prices)
+
+### Schema Design
+- Primary keys on all tables
+- Foreign key relationships for data integrity
+- Use SERIAL for auto-incrementing IDs
+- Store dates as DATE type
+
+## AWS Integration
+
+### S3 Best Practices
+- Use boto3 for AWS operations
+- Handle AWS exceptions gracefully
+- Use StringIO for in-memory CSV operations
+- Set appropriate S3 bucket permissions
+- Use descriptive S3 keys with folder structure
+
+### Security
+- Never commit AWS credentials to version control
+- Use environment variables for sensitive data
+- Consider using AWS IAM roles for production
+
+## Data Processing Guidelines
+
+### Pandas Best Practices
+- Use pandas for data manipulation
+- Handle missing values appropriately
+- Use efficient pandas operations (vectorized operations)
+- Convert date columns to datetime objects
+- Use drop_duplicates() for deduplication
+
+### Data Quality
+- Validate data types and ranges
+- Handle outliers appropriately
+- Ensure data consistency across tables
+- Log data quality metrics (row counts, duplicate counts)
+
+## Testing Strategy
+
+### Unit Testing
+- Test individual functions in isolation
+- Mock external dependencies (database, S3)
+- Test edge cases and error conditions
+- Use pytest for testing framework
+
+### Integration Testing
+- Test end-to-end pipeline execution
+- Use test database with sample data
+- Verify data transformations
+- Test error handling scenarios
+
+## Docker Guidelines
+
+### Container Best Practices
+- Use specific Python version (3.8)
+- Copy requirements.txt first for better layer caching
+- Set appropriate WORKDIR
+- Use multi-stage builds for production
+- Include .dockerignore to exclude unnecessary files
+
+### Docker Compose
+- Use for local development environment
+- Define service dependencies
+- Mount volumes for data persistence
+- Use environment variables for configuration
+
+## Performance Optimization
+
+### Database Performance
+- Use indexes on frequently queried columns
+- Optimize SQL queries with EXPLAIN
+- Use appropriate data types
+- Consider query result caching
+
+### Memory Management
+- Process data in chunks for large datasets
+- Use generators for memory-efficient iteration
+- Clean up resources properly
+- Monitor memory usage
+
+## Monitoring and Logging
+
+### Logging Standards
+- Use structured logging
+- Include timestamps and execution times
+- Log important pipeline milestones
+- Use appropriate log levels (INFO, WARNING, ERROR)
+
+### Metrics to Track
+- Execution time for each pipeline stage
+- Number of records processed
+- Number of duplicates removed
+- S3 upload success/failure rates
+- Database connection status
+
+## Deployment Guidelines
+
+### Production Considerations
+- Use environment-specific configurations
+- Implement proper error handling and retries
+- Set up monitoring and alerting
+- Use secure credential management
+- Consider using AWS Glue or Apache Airflow for orchestration
+
+### CI/CD Pipeline
+- Run tests before deployment
+- Use Docker for consistent environments
+- Implement automated testing
+- Use semantic versioning
+
+## Common Commands
+
+### Development Workflow
+```bash
+# Start development environment
+docker-compose up -d
+
+# Run pipeline
+python main.py
+
+# Check database connection
+psql -h localhost -p 5432 -U postgres -d etl_db
+
+# View logs
+docker-compose logs postgres
+
+# Reset database
+docker-compose down -v && docker-compose up -d
+```
+
+### Debugging
+```bash
+# Check Python environment
+python --version
+pip list
+
+# Test database connection
+python -c "from src.extract import connect_to_postgres; print('DB OK')"
+
+# Test AWS credentials
+aws sts get-caller-identity
+```
+
+## File Structure
+```
+ETL-Pipeline/
+├── main.py                 # Pipeline orchestration
+├── requirements.txt        # Python dependencies
+├── Dockerfile             # Container configuration
+├── docker-compose.yml     # Local development setup
+├── .env.example          # Environment template
+├── src/
+│   ├── extract.py        # Data extraction from PostgreSQL
+│   ├── transform.py      # Data cleaning and deduplication
+│   └── load_data_to_s3.py # S3 upload functionality
+├── init/
+│   └── init.sql          # Database schema and sample data
+└── devin.rules           # This file
+```
+
+## IMPORTANT Notes
+- Always test changes in a development environment first
+- Never commit sensitive credentials to version control
+- Use meaningful commit messages following conventional commits
+- Document any changes to the data schema or pipeline logic
+- Monitor pipeline execution times and optimize slow operations
+- Keep dependencies updated and secure 

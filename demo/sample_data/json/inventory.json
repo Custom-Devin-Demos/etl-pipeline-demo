@@ -1,0 +1,15 @@
+{
+  "warehouse_id": "WH-001",
+  "warehouse_name": "West Coast Distribution Center",
+  "location": {"city": "Los Angeles", "state": "CA", "country": "US"},
+  "last_updated": "2024-02-10T14:30:00Z",
+  "inventory": [
+    {"product_id": "P101", "sku": "WM-001-BLK", "quantity_on_hand": 1250, "reorder_point": 200, "last_restocked": "2024-02-01"},
+    {"product_id": "P102", "sku": "NCH-002-BLK", "quantity_on_hand": 340, "reorder_point": 50, "last_restocked": "2024-01-28"},
+    {"product_id": "P103", "sku": "USC-003-WHT", "quantity_on_hand": 5600, "reorder_point": 1000, "last_restocked": "2024-02-05"},
+    {"product_id": "P104", "sku": "MK-004-RGB", "quantity_on_hand": 180, "reorder_point": 30, "last_restocked": "2024-01-15"},
+    {"product_id": "P105", "sku": "PS-005-BLU", "quantity_on_hand": 720, "reorder_point": 100, "last_restocked": "2024-02-08"},
+    {"product_id": "P106", "sku": "MON-006-BLK", "quantity_on_hand": 95, "reorder_point": 20, "last_restocked": "2024-01-20"},
+    {"product_id": "P107", "sku": "LP-007-SLV", "quantity_on_hand": 45, "reorder_point": 10, "last_restocked": "2024-02-03"}
+  ]
+}

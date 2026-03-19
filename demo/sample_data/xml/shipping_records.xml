@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shipping_manifest>
+  <metadata>
+    <generated_date>2024-02-10</generated_date>
+    <system>Legacy Shipping Management System v3.2</system>
+    <region>North America</region>
+  </metadata>
+  <shipments>
+    <shipment>
+      <shipment_id>SH-2024-0001</shipment_id>
+      <transaction_id>T001</transaction_id>
+      <customer_id>C001</customer_id>
+      <origin>WH-001</origin>
+      <destination>
+        <address>123 Main St</address>
+        <city>San Francisco</city>
+        <state>CA</state>
+        <zip>94102</zip>
+      </destination>
+      <carrier>FedEx</carrier>
+      <tracking_number>FX-882910001</tracking_number>
+      <ship_date>2024-01-16</ship_date>
+      <delivery_date>2024-01-19</delivery_date>
+      <status>delivered</status>
+      <weight_kg>0.30</weight_kg>
+      <shipping_cost>8.99</shipping_cost>
+    </shipment>
+    <shipment>
+      <shipment_id>SH-2024-0002</shipment_id>
+      <transaction_id>T002</transaction_id>
+      <customer_id>C002</customer_id>
+      <origin>WH-001</origin>
+      <destination>
+        <address>456 Oak Ave</address>
+        <city>Chicago</city>
+        <state>IL</state>
+        <zip>60601</zip>
+      </destination>
+      <carrier>UPS</carrier>
+      <tracking_number>UPS-773820002</tracking_number>
+      <ship_date>2024-01-17</ship_date>
+      <delivery_date>2024-01-21</delivery_date>
+      <status>delivered</status>
+      <weight_kg>0.35</weight_kg>
+      <shipping_cost>12.50</shipping_cost>
+    </shipment>
+    <shipment>
+      <shipment_id>SH-2024-0003</shipment_id>
+      <transaction_id>T004</transaction_id>
+      <customer_id>C001</customer_id>
+      <origin>WH-001</origin>
+      <destination>
+        <address>123 Main St</address>
+        <city>San Francisco</city>
+        <state>CA</state>
+        <zip>94102</zip>
+      </destination>
+      <carrier>FedEx</carrier>
+      <tracking_number>FX-882910003</tracking_number>
+      <ship_date>2024-01-19</ship_date>
+      <delivery_date>2024-01-22</delivery_date>
+      <status>delivered</status>
+      <weight_kg>1.20</weight_kg>
+      <shipping_cost>15.99</shipping_cost>
+    </shipment>
+    <shipment>
+      <shipment_id>SH-2024-0004</shipment_id>
+      <transaction_id>T005</transaction_id>
+      <customer_id>C004</customer_id>
+      <origin>WH-001</origin>
+      <destination>
+        <address>321 Elm St</address>
+        <city>Seattle</city>
+        <state>WA</state>
+        <zip>98101</zip>
+      </destination>
+      <carrier>USPS</carrier>
+      <tracking_number>USPS-991230004</tracking_number>
+      <ship_date>2024-01-20</ship_date>
+      <delivery_date></delivery_date>
+      <status>in_transit</status>
+      <weight_kg>0.75</weight_kg>
+      <shipping_cost>6.50</shipping_cost>
+    </shipment>
+    <shipment>
+      <shipment_id>SH-2024-0005</shipment_id>
+      <transaction_id>T009</transaction_id>
+      <customer_id>C007</customer_id>
+      <origin>WH-001</origin>
+      <destination>
+        <address>147 Maple Way</address>
+        <city>Portland</city>
+        <state>OR</state>
+        <zip>97201</zip>
+      </destination>
+      <carrier>FedEx</carrier>
+      <tracking_number>FX-882910005</tracking_number>
+      <ship_date>2024-01-24</ship_date>
+      <delivery_date>2024-01-27</delivery_date>
+      <status>delivered</status>
+      <weight_kg>2.10</weight_kg>
+      <shipping_cost>22.99</shipping_cost>
+    </shipment>
+  </shipments>
+</shipping_manifest>
