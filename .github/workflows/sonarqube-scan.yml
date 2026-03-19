@@ -29,31 +29,34 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.pr_branch || github.event.pull_request.head.ref }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-      - name: Quality Gate Check
+      - name: Wait for SonarCloud Automatic Analysis
         id: quality-gate
         continue-on-error: true
-        uses: SonarSource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number || github.event.pull_request.number }}
+        run: |
+          echo "Waiting for SonarCloud Automatic Analysis to complete..."
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            QG=$(curl -s -u "$SONAR_TOKEN:" \
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+            STATUS=$(echo "$QG" | jq -r '.projectStatus.status')
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS — Quality Gate status: $STATUS"
+            if [ "$STATUS" = "ERROR" ]; then
+              echo "Quality Gate FAILED"
+              exit 1
+            elif [ "$STATUS" = "OK" ]; then
+              echo "Quality Gate PASSED"
+              exit 0
+            fi
+            echo "Analysis not ready yet, waiting 20s..."
+            sleep 20
+          done
+          echo "Timed out waiting for SonarCloud analysis"
+          exit 1
 
       - name: Check if Devin Remediation Commit
         id: check-devin
