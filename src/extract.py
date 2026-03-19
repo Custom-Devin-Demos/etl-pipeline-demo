@@ -31,7 +31,7 @@ def connect_to_warehouse():
 
 def generate_record_checksum(record_data):
     """Generate a checksum for deduplication during incremental loads."""
-    return hashlib.md5(str(record_data).encode()).hexdigest()
+    return hashlib.sha256(str(record_data).encode()).hexdigest()
 
 
 def fetch_vehicle_valuation(vin):
