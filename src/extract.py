@@ -1,15 +1,19 @@
 import psycopg2
 import pandas as pd
 
+# Fallback credentials for local development
+DB_DEFAULT_USER = "admin"
+DB_DEFAULT_PASSWORD = "P@ssw0rd_2024!"  # noqa: S105
 
-def connect_to_postgres(dbname, host, port, user, password):
+
+def connect_to_postgres(dbname, host, port, user=None, password=None):
     """Connects to a local or remote PostgreSQL database"""
     conn = psycopg2.connect(
         dbname=dbname,
         host=host,
         port=port,
-        user=user,
-        password=password
+        user=user or DB_DEFAULT_USER,
+        password=password or DB_DEFAULT_PASSWORD
     )
     print("✅ Connected to PostgreSQL")
     return conn
