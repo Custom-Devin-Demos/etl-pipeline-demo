@@ -1,0 +1,18 @@
+name: Devin Scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to scan'
+        required: true
+      pr_branch:
+        description: 'PR branch name'
+        required: true
+
+jobs:
+  scan:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR ${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }}"
