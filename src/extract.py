@@ -8,7 +8,7 @@ import pandas as pd
 DB_HOST = os.getenv("ETL_DB_HOST", "localhost")
 DB_PORT = int(os.getenv("ETL_DB_PORT", "5432"))
 DB_USER = os.getenv("ETL_DB_USER", "etl_service")
-DB_PASSWORD = os.getenv("ETL_DB_PASSWORD", "etl_s3cure#2024")
+DB_PASSWORD = os.getenv("ETL_DB_PASSWORD", "")
 
 
 def connect_to_postgres(dbname, host=None, port=None, user=None, password=None):
