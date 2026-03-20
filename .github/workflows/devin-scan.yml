@@ -9,6 +9,10 @@ on:
       pr_branch:
         description: 'PR branch name'
         required: true
+      customer:
+        description: 'Customer slug for per-customer Devin API key selection'
+        required: false
+        default: 'default'
 
 jobs:
   sonarqube-scan:
@@ -24,7 +28,8 @@ jobs:
         run: |
           echo "pr_number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
           echo "pr_branch=${{ github.event.inputs.pr_branch }}" >> $GITHUB_OUTPUT
-          echo "Scanning PR #${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }}"
+          echo "Scanning PR #${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }} (customer: ${{ github.event.inputs.customer }})"
+          echo "customer=${{ github.event.inputs.customer }}" >> $GITHUB_OUTPUT
 
       - name: Checkout code
         uses: actions/checkout@v4
