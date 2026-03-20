@@ -13,6 +13,14 @@ on:
         description: 'Customer slug for per-customer Devin API key selection'
         required: false
         default: 'default'
+      user_id:
+        description: 'Devin user ID for per-user session creation (create_as_user_id)'
+        required: false
+        default: ''
+      org_id:
+        description: 'Devin org ID for per-org session creation'
+        required: false
+        default: ''
 
 jobs:
   sonarqube-scan:
@@ -30,6 +38,8 @@ jobs:
           echo "pr_branch=${{ github.event.inputs.pr_branch }}" >> $GITHUB_OUTPUT
           echo "Scanning PR #${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }} (customer: ${{ github.event.inputs.customer }})"
           echo "customer=${{ github.event.inputs.customer }}" >> $GITHUB_OUTPUT
+          echo "user_id=${{ github.event.inputs.user_id }}" >> $GITHUB_OUTPUT
+          echo "org_id=${{ github.event.inputs.org_id }}" >> $GITHUB_OUTPUT
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -164,7 +174,7 @@ jobs:
           steps.quality-gate.outputs.outcome == 'failure' &&
           steps.check-devin.outputs.is_devin_commit == 'false'
         env:
-          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_API_KEY: ${{ secrets.DEVIN_SERVICE_KEY || secrets.DEVIN_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_REF: ${{ github.event.inputs.pr_branch }}
           REPO: ${{ github.repository }}
@@ -217,18 +227,29 @@ jobs:
           - Use git diff --name-only to verify which files you changed.
           - Tag your commit with [devin-fix] so the workflow does not re-trigger."
 
-          DEVIN_RESPONSE=$(curl -s -X POST "https://api.devin.ai/v1/sessions" \
+          # Resolve org ID: prefer workflow input, fall back to DEVIN_ORG_ID secret
+          ORG_ID="${{ github.event.inputs.org_id }}"
+          if [ -z "$ORG_ID" ]; then
+            ORG_ID="${{ secrets.DEVIN_ORG_ID }}"
+          fi
+          USER_ID="${{ github.event.inputs.user_id }}"
+
+          # Build v3 API request body
+          API_BODY=$(jq -n \
+            --arg prompt "$PROMPT" \
+            --arg repo "$SERVER_URL/$REPO" \
+            --arg branch "$HEAD_REF" \
+            --arg user_id "$USER_ID" \
+            '{
+              prompt: $prompt,
+              repo_url: $repo,
+              branch: $branch
+            } + (if $user_id != "" then {create_as_user_id: $user_id} else {} end)')
+
+          DEVIN_RESPONSE=$(curl -s -X POST "https://api.devin.ai/v3/organizations/${ORG_ID}/sessions" \
             -H "Authorization: Bearer $DEVIN_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg prompt "$PROMPT" \
-              --arg repo "$SERVER_URL/$REPO" \
-              --arg branch "$HEAD_REF" \
-              '{
-                prompt: $prompt,
-                repo_url: $repo,
-                branch: $branch
-              }')")
+            -d "$API_BODY")
           SESSION_ID=$(echo "$DEVIN_RESPONSE" | jq -r '.session_id')
           SESSION_URL=$(echo "$DEVIN_RESPONSE" | jq -r '.url')
           if [ "$SESSION_ID" == "null" ] || [ -z "$SESSION_ID" ]; then
