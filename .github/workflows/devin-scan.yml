@@ -9,6 +9,10 @@ on:
       pr_branch:
         description: 'PR branch name'
         required: true
+      customer:
+        description: 'Customer slug for per-customer Devin API key selection'
+        required: false
+        default: 'default'
 
 jobs:
   sonarqube-scan:
@@ -44,7 +48,7 @@ jobs:
           for i in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $i/$MAX_ATTEMPTS: Checking SonarCloud analysis status..."
             QG_RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
-              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=Custom-Devin-Demos_etl-pipeline-demo&pullRequest=$PR_NUMBER")
             QG_STATUS=$(echo "$QG_RESPONSE" | jq -r '.projectStatus.status // "NONE"')
             echo "Quality Gate status: $QG_STATUS"
             if [ "$QG_STATUS" != "NONE" ] && [ "$QG_STATUS" != "null" ]; then
@@ -118,15 +122,15 @@ jobs:
         run: |
           echo "Extracting issues from SonarCloud for PR #$PR_NUMBER..."
           ALL_ISSUES=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/issues/search?componentKeys=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER&resolved=false&ps=100")
+            "https://sonarcloud.io/api/issues/search?componentKeys=Custom-Devin-Demos_etl-pipeline-demo&pullRequest=$PR_NUMBER&resolved=false&ps=100")
           QG_STATUS=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=Custom-Devin-Demos_etl-pipeline-demo&pullRequest=$PR_NUMBER")
           VULNERABILITIES=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="VULNERABILITY")] | length')
           BUGS=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="BUG")] | length')
           CODE_SMELLS=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="CODE_SMELL")] | length')
           TOTAL_ISSUES=$(echo "$ALL_ISSUES" | jq '.total')
           SECURITY_HOTSPOTS_RESP=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/hotspots/search?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER&ps=100")
+            "https://sonarcloud.io/api/hotspots/search?projectKey=Custom-Devin-Demos_etl-pipeline-demo&pullRequest=$PR_NUMBER&ps=100")
           SECURITY_HOTSPOTS=$(echo "$SECURITY_HOTSPOTS_RESP" | jq '.paging.total // 0')
           FAILED_CONDITIONS=$(echo "$QG_STATUS" | jq -c '[.projectStatus.conditions[]? | select(.status=="ERROR") | {metric: .metricKey, actual: .actualValue, threshold: .errorThreshold}]')
           ISSUE_DETAILS=$(echo "$ALL_ISSUES" | jq -c '[.issues[] | {key: .key, type: .type, severity: .severity, message: .message, component: .component, line: .line, rule: .rule}]')
@@ -159,7 +163,10 @@ jobs:
           steps.quality-gate.outputs.outcome == 'failure' &&
           steps.check-devin.outputs.is_devin_commit == 'false'
         env:
-          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_API_KEY_DEFAULT: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_API_KEY_WAYFAIR: ${{ secrets.DEVIN_API_KEY_WAYFAIR }}
+          DEVIN_API_KEY_ZAXBYS: ${{ secrets.DEVIN_API_KEY_ZAXBYS }}
+          CUSTOMER: ${{ github.event.inputs.customer }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_REF: ${{ github.event.inputs.pr_branch }}
           REPO: ${{ github.repository }}
@@ -175,6 +182,19 @@ jobs:
           INPUT_FAILED_CONDITIONS: ${{ steps.extract-issues.outputs.failed_conditions }}
           INPUT_CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
+          # Select per-customer Devin API key
+          case "$CUSTOMER" in
+            wayfair) DEVIN_API_KEY="$DEVIN_API_KEY_WAYFAIR" ;;
+            zaxbys)  DEVIN_API_KEY="$DEVIN_API_KEY_ZAXBYS" ;;
+            *)       DEVIN_API_KEY="$DEVIN_API_KEY_DEFAULT" ;;
+          esac
+ 
+          if [ -z "$DEVIN_API_KEY" ]; then
+            echo "ERROR: No Devin API key found for customer: $CUSTOMER"
+            exit 1
+          fi
+ 
+          echo "Using Devin API key for customer: $CUSTOMER"
           echo "Triggering Devin AI for vulnerability remediation..."
           PROMPT="# SonarQube Vulnerability Remediation - PR #${PR_NUMBER}
 
@@ -259,7 +279,7 @@ jobs:
           | Security Hotspots | ${INPUT_SECURITY_HOTSPOTS} |
 
           **Devin Session:** [Monitor progress](${SESSION_URL})
-          **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=COG-GTM_etl-pipeline-demo&pullRequest=${PR_NUMBER})
+          **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=Custom-Devin-Demos_etl-pipeline-demo&pullRequest=${PR_NUMBER})
 
           Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes."
 
