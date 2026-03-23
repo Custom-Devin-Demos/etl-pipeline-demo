@@ -36,7 +36,9 @@ jobs:
         run: |
           echo "pr_number=${{ github.event.inputs.pr_number }}" >> $GITHUB_OUTPUT
           echo "pr_branch=${{ github.event.inputs.pr_branch }}" >> $GITHUB_OUTPUT
-          echo "Scanning PR #${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }} (customer: ${{ github.event.inputs.customer }})"
+          SONAR_KEY="${GITHUB_REPOSITORY/\//_}"
+          echo "sonar_project_key=$SONAR_KEY" >> $GITHUB_OUTPUT
+          echo "Scanning PR #${{ github.event.inputs.pr_number }} on branch ${{ github.event.inputs.pr_branch }} (customer: ${{ github.event.inputs.customer }}, sonar key: $SONAR_KEY)"
           echo "customer=${{ github.event.inputs.customer }}" >> $GITHUB_OUTPUT
           echo "user_id=${{ github.event.inputs.user_id }}" >> $GITHUB_OUTPUT
           echo "org_id=${{ github.event.inputs.org_id }}" >> $GITHUB_OUTPUT
@@ -52,6 +54,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          SONAR_PROJECT_KEY: ${{ steps.lookup-pr.outputs.sonar_project_key }}
         run: |
           echo "Waiting for SonarCloud Automatic Analysis to complete for PR #$PR_NUMBER..."
           MAX_ATTEMPTS=30
@@ -59,7 +62,7 @@ jobs:
           for i in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $i/$MAX_ATTEMPTS: Checking SonarCloud analysis status..."
             QG_RESPONSE=$(curl -s -u "$SONAR_TOKEN:" \
-              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+              "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}&pullRequest=$PR_NUMBER")
             QG_STATUS=$(echo "$QG_RESPONSE" | jq -r '.projectStatus.status // "NONE"')
             echo "Quality Gate status: $QG_STATUS"
             if [ "$QG_STATUS" != "NONE" ] && [ "$QG_STATUS" != "null" ]; then
@@ -130,18 +133,19 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          SONAR_PROJECT_KEY: ${{ steps.lookup-pr.outputs.sonar_project_key }}
         run: |
           echo "Extracting issues from SonarCloud for PR #$PR_NUMBER..."
           ALL_ISSUES=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/issues/search?componentKeys=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER&resolved=false&ps=100")
+            "https://sonarcloud.io/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&pullRequest=$PR_NUMBER&resolved=false&ps=100")
           QG_STATUS=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER")
+            "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}&pullRequest=$PR_NUMBER")
           VULNERABILITIES=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="VULNERABILITY")] | length')
           BUGS=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="BUG")] | length')
           CODE_SMELLS=$(echo "$ALL_ISSUES" | jq '[.issues[] | select(.type=="CODE_SMELL")] | length')
           TOTAL_ISSUES=$(echo "$ALL_ISSUES" | jq '.total')
           SECURITY_HOTSPOTS_RESP=$(curl -s -u "$SONAR_TOKEN:" \
-            "https://sonarcloud.io/api/hotspots/search?projectKey=COG-GTM_etl-pipeline-demo&pullRequest=$PR_NUMBER&ps=100")
+            "https://sonarcloud.io/api/hotspots/search?projectKey=${SONAR_PROJECT_KEY}&pullRequest=$PR_NUMBER&ps=100")
           SECURITY_HOTSPOTS=$(echo "$SECURITY_HOTSPOTS_RESP" | jq '.paging.total // 0')
           FAILED_CONDITIONS=$(echo "$QG_STATUS" | jq -c '[.projectStatus.conditions[]? | select(.status=="ERROR") | {metric: .metricKey, actual: .actualValue, threshold: .errorThreshold}]')
           ISSUE_DETAILS=$(echo "$ALL_ISSUES" | jq -c '[.issues[] | {key: .key, type: .type, severity: .severity, message: .message, component: .component, line: .line, rule: .rule}]')
@@ -276,6 +280,7 @@ jobs:
           INPUT_BUGS: ${{ steps.extract-issues.outputs.bugs }}
           INPUT_CODE_SMELLS: ${{ steps.extract-issues.outputs.code_smells }}
           INPUT_SECURITY_HOTSPOTS: ${{ steps.extract-issues.outputs.security_hotspots }}
+          SONAR_PROJECT_KEY: ${{ steps.lookup-pr.outputs.sonar_project_key }}
         run: |
           COMMENT_BODY="## Devin AI - Automated Vulnerability Remediation
 
@@ -289,7 +294,7 @@ jobs:
           | Security Hotspots | ${INPUT_SECURITY_HOTSPOTS} |
 
           **Devin Session:** [Monitor progress](${SESSION_URL})
-          **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=COG-GTM_etl-pipeline-demo&pullRequest=${PR_NUMBER})
+          **SonarCloud:** [View dashboard](https://sonarcloud.io/dashboard?id=${SONAR_PROJECT_KEY}&pullRequest=${PR_NUMBER})
 
           Devin will push a fix to this branch. The workflow will re-run automatically to verify the quality gate passes."
 
