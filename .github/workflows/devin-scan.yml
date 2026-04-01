@@ -178,7 +178,9 @@ jobs:
           steps.quality-gate.outputs.outcome == 'failure' &&
           steps.check-devin.outputs.is_devin_commit == 'false'
         env:
-          DEVIN_API_KEY: ${{ secrets.DEVIN_SERVICE_KEY || secrets.DEVIN_API_KEY }}
+          DEVIN_DEFAULT_KEY: ${{ secrets.DEVIN_SERVICE_KEY || secrets.DEVIN_API_KEY }}
+          DEVIN_CUSTOM_KEY: ${{ secrets.DEVIN_CUSTOM_SERVICE_KEY }}
+          CUSTOMER: ${{ github.event.inputs.customer }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_REF: ${{ github.event.inputs.pr_branch }}
           REPO: ${{ github.repository }}
@@ -194,6 +196,16 @@ jobs:
           INPUT_FAILED_CONDITIONS: ${{ steps.extract-issues.outputs.failed_conditions }}
           INPUT_CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
         run: |
+          # For custom/hardcoded demos, prefer DEVIN_CUSTOM_SERVICE_KEY
+          if [ "$CUSTOMER" != "default" ] && [ -n "$DEVIN_CUSTOM_KEY" ]; then
+            DEVIN_API_KEY="$DEVIN_CUSTOM_KEY"
+            echo "Using custom service key for customer: $CUSTOMER"
+          else
+            DEVIN_API_KEY="$DEVIN_DEFAULT_KEY"
+            echo "Using default service key"
+          fi
+          export DEVIN_API_KEY
+
           echo "Triggering Devin AI for vulnerability remediation..."
           PROMPT="# SonarQube Vulnerability Remediation - PR #${PR_NUMBER}
 
