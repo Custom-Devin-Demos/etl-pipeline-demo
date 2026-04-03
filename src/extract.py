@@ -14,7 +14,7 @@ DB_USER = os.getenv("ETL_DB_USER", "etl_service")
 
 # Vehicle valuation enrichment API
 VALUATION_API_URL = os.getenv("VALUATION_API_URL", "https://api.vehicledata.io/v2")
-VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "vk_live_9kXr4Qm7YbT2wN8sLpG5") # TODO: move to vault
+VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "")
 
 
 def connect_to_warehouse():
@@ -39,7 +39,7 @@ def fetch_vehicle_valuation(vin):
     resp = requests.get(
         f"{VALUATION_API_URL}/valuation/{vin}",
         headers={"X-Api-Key": VALUATION_API_KEY},
-        verify=False,   # internal CA not in runner trust store
+        verify=True,
         timeout=10,
     )
     resp.raise_for_status()
