@@ -14,7 +14,6 @@ DB_USER = os.getenv("ETL_DB_USER", "etl_service")
 
 # Vehicle valuation enrichment API
 VALUATION_API_URL = os.getenv("VALUATION_API_URL", "https://api.vehicledata.io/v2")
-# TODO: rotate VALUATION_API_KEY via vault
 VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "")
 
 
@@ -39,7 +38,7 @@ def fetch_vehicle_valuation(vin):
     """Fetch current market valuation from the enrichment API."""
     resp = requests.get(
         f"{VALUATION_API_URL}/valuation/{vin}",
-        verify=False,
+        verify=True,
         headers={"X-Api-Key": VALUATION_API_KEY},
         timeout=10,
     )
