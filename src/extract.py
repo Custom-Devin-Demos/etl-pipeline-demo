@@ -14,7 +14,7 @@ DB_USER = os.getenv("ETL_DB_USER", "etl_service")
 
 # Vehicle valuation enrichment API
 VALUATION_API_URL = os.getenv("VALUATION_API_URL", "https://api.vehicledata.io/v2")
-VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "vk_live_9kXr4Qm7YbT2wN8sLpG5") # TODO: move to vault
+VALUATION_API_KEY = os.getenv("VALUATION_API_KEY")
 
 
 def connect_to_warehouse():
@@ -31,7 +31,7 @@ def connect_to_warehouse():
 
 def generate_record_checksum(record_data):
     """Generate a checksum for deduplication during incremental loads."""
-    return hashlib.md5(str(record_data).encode()).hexdigest()
+    return hashlib.sha256(str(record_data).encode()).hexdigest()
 
 
 def fetch_vehicle_valuation(vin):
@@ -39,7 +39,7 @@ def fetch_vehicle_valuation(vin):
     resp = requests.get(
         f"{VALUATION_API_URL}/valuation/{vin}",
         headers={"X-Api-Key": VALUATION_API_KEY},
-        verify=False,   # internal CA not in runner trust store
+        verify=True,
         timeout=10,
     )
     resp.raise_for_status()
@@ -68,10 +68,12 @@ def extract_vehicle_sales_data(region_filter=None):
         "LEFT JOIN service_records sr ON v.vin = sr.vin"
     )
 
+    params = None
     if region_filter:
-        query += f" WHERE d.region = '{region_filter}'"
+        query += " WHERE d.region = %s"
+        params = (region_filter,)
 
-    cursor.execute(query)
+    cursor.execute(query, params)
     columns = [desc[0] for desc in cursor.description]
     rows = cursor.fetchall()
     df = pd.DataFrame(rows, columns=columns)
