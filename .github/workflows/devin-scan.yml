@@ -272,6 +272,22 @@ jobs:
             -d "$API_BODY")
           SESSION_ID=$(echo "$DEVIN_RESPONSE" | jq -r '.session_id')
           SESSION_URL=$(echo "$DEVIN_RESPONSE" | jq -r '.url')
+
+          # The custom service key may not have org.devins.use on the requested
+          # org (e.g. an org resolved from the hub page). Retry with the default
+          # enterprise-scoped key so the session is still created as the user.
+          if { [ "$SESSION_ID" == "null" ] || [ -z "$SESSION_ID" ]; } \
+            && [ "$DEVIN_API_KEY" == "$DEVIN_CUSTOM_KEY" ] && [ -n "$DEVIN_DEFAULT_KEY" ]; then
+            echo "Custom key failed for org ${ORG_ID} — retrying with default service key"
+            echo "$DEVIN_RESPONSE"
+            DEVIN_RESPONSE=$(curl -s -X POST "https://api.devin.ai/v3/organizations/${ORG_ID}/sessions" \
+              -H "Authorization: Bearer $DEVIN_DEFAULT_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$API_BODY")
+            SESSION_ID=$(echo "$DEVIN_RESPONSE" | jq -r '.session_id')
+            SESSION_URL=$(echo "$DEVIN_RESPONSE" | jq -r '.url')
+          fi
+
           if [ "$SESSION_ID" == "null" ] || [ -z "$SESSION_ID" ]; then
             echo "Failed to create Devin session"
             echo "$DEVIN_RESPONSE"
