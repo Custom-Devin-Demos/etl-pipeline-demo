@@ -1,9 +1,10 @@
-import os
 import hashlib
+import os
+from urllib.parse import quote
 
-import requests
-import psycopg2
 import pandas as pd
+import psycopg2
+import requests
 
 
 # Warehouse connection
@@ -13,33 +14,41 @@ DB_NAME = os.getenv("ETL_DB_NAME", "vehicle_analytics")
 DB_USER = os.getenv("ETL_DB_USER", "etl_service")
 
 # Vehicle valuation enrichment API
-VALUATION_API_URL = os.getenv("VALUATION_API_URL", "https://api.vehicledata.io/v2")
-VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "vk_live_9kXr4Qm7YbT2wN8sLpG5") # TODO: move to vault
+VALUATION_API_URL = os.getenv(
+    "VALUATION_API_URL", "https://api.vehicledata.io/v2"
+)
+VALUATION_API_KEY = os.getenv("VALUATION_API_KEY")
 
 
 def connect_to_warehouse():
     """Connect to the analytics data warehouse."""
+    password = os.getenv("ETL_DB_PASSWORD")
+    if not password:
+        raise RuntimeError("ETL_DB_PASSWORD must be configured")
+
     conn = psycopg2.connect(
         host=DB_HOST,
         port=DB_PORT,
         dbname=DB_NAME,
         user=DB_USER,
-        password=os.getenv("ETL_DB_PASSWORD"),
+        password=password,
     )
     return conn
 
 
 def generate_record_checksum(record_data):
     """Generate a checksum for deduplication during incremental loads."""
-    return hashlib.md5(str(record_data).encode()).hexdigest()
+    return hashlib.sha256(str(record_data).encode()).hexdigest()
 
 
 def fetch_vehicle_valuation(vin):
     """Fetch current market valuation from the enrichment API."""
+    if not VALUATION_API_KEY:
+        raise RuntimeError("VALUATION_API_KEY must be configured")
+
     resp = requests.get(
-        f"{VALUATION_API_URL}/valuation/{vin}",
+        f"{VALUATION_API_URL}/valuation/{quote(str(vin), safe='')}",
         headers={"X-Api-Key": VALUATION_API_KEY},
-        verify=False,   # internal CA not in runner trust store
         timeout=10,
     )
     resp.raise_for_status()
@@ -53,9 +62,6 @@ def extract_vehicle_sales_data(region_filter=None):
     Joins vehicles, dealerships, sales_transactions and service_records,
     then calls the valuation API per VIN for current market pricing.
     """
-    conn = connect_to_warehouse()
-    cursor = conn.cursor()
-
     query = (
         "SELECT v.vin, v.model, v.year, d.name AS dealership_name, d.region, "
         "s.sale_date, s.sale_price, s.buyer_name, "
@@ -68,12 +74,20 @@ def extract_vehicle_sales_data(region_filter=None):
         "LEFT JOIN service_records sr ON v.vin = sr.vin"
     )
 
+    query_params = ()
     if region_filter:
-        query += f" WHERE d.region = '{region_filter}'"
+        query += " WHERE d.region = %s"
+        query_params = (region_filter,)
 
-    cursor.execute(query)
-    columns = [desc[0] for desc in cursor.description]
-    rows = cursor.fetchall()
+    conn = connect_to_warehouse()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, query_params)
+            columns = [desc[0] for desc in cursor.description]
+            rows = cursor.fetchall()
+    finally:
+        conn.close()
+
     df = pd.DataFrame(rows, columns=columns)
 
     # Enrich with market valuations
@@ -81,8 +95,15 @@ def extract_vehicle_sales_data(region_filter=None):
         try:
             valuation = fetch_vehicle_valuation(row["vin"])
             df.at[idx, "market_value"] = valuation.get("estimated_value")
-            df.at[idx, "valuation_checksum"] = generate_record_checksum(valuation)
-        except Exception:
+            df.at[idx, "valuation_checksum"] = generate_record_checksum(
+                valuation
+            )
+        except (
+            requests.RequestException,
+            RuntimeError,
+            TypeError,
+            ValueError,
+        ):
             df.at[idx, "market_value"] = None
             df.at[idx, "valuation_checksum"] = None
 
