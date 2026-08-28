@@ -1,0 +1,12 @@
+# https://docs.devin.ai/onboard-devin/environment-yaml
+initialize: |
+  printf 'DB_NAME=etl_db\nDB_HOST=localhost\nDB_PORT=5432\nDB_USER=postgres\nDB_PASSWORD=mysecretpassword\n' > .env
+maintenance: |
+  pip3 install -r requirements.txt
+knowledge:
+  - name: database
+    contents: |
+      docker compose up -d postgres  # local Postgres (etl_db, user postgres/mysecretpassword) seeded from init/init.sql; containers are not running at session start
+  - name: run pipeline
+    contents: |
+      python3 main.py  # extract+transform work against local Postgres; S3 upload step requires AWS credentials (aws_access_key_id / aws_secret_access_key_id in .env)
