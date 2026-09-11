@@ -1,12 +1,18 @@
-# https://docs.devin.ai/onboard-devin/environment-yaml
+# One-time setup (e.g., install system tools, global CLIs).
 initialize: |
   printf 'DB_NAME=etl_db\nDB_HOST=localhost\nDB_PORT=5432\nDB_USER=postgres\nDB_PASSWORD=mysecretpassword\n' > .env
+# Install project dependencies (runs during builds, surfaced to agent at session start).
 maintenance: |
   pip3 install -r requirements.txt
 knowledge:
   - name: database
     contents: |
       docker compose up -d postgres  # local Postgres (etl_db, user postgres/mysecretpassword) seeded from init/init.sql; containers are not running at session start
+      docker compose ps; docker compose logs postgres --tail 20   # wait for "database system is ready to accept connections" before running the pipeline
+      docker compose down -v && docker compose up -d postgres     # reset: init/init.sql only runs on an empty pgdata volume
   - name: run pipeline
     contents: |
-      python3 main.py  # extract+transform work against local Postgres; S3 upload step requires AWS credentials (aws_access_key_id / aws_secret_access_key_id in .env)
+      python3 main.py  # extract+transform work against local Postgres (expect "Extracted rows: 5"); the final S3 upload to bucket cognition-devin needs aws_access_key_id / aws_secret_access_key_id in .env and otherwise ends with botocore NoCredentialsError — that is expected locally, not a setup failure
+  - name: test
+    contents: |
+      # no test suite or linter is defined in this repo; python3 main.py against local Postgres is the smoke test
