@@ -1,10 +1,14 @@
 import os
 import hashlib
+import logging
+from urllib.parse import quote
 
 import requests
 import psycopg2
 import pandas as pd
 
+
+logger = logging.getLogger(__name__)
 
 # Warehouse connection
 DB_HOST = os.getenv("ETL_DB_HOST", "data-warehouse.internal.acme.com")
@@ -14,7 +18,16 @@ DB_USER = os.getenv("ETL_DB_USER", "etl_service")
 
 # Vehicle valuation enrichment API
 VALUATION_API_URL = os.getenv("VALUATION_API_URL", "https://api.vehicledata.io/v2")
-VALUATION_API_KEY = os.getenv("VALUATION_API_KEY", "vk_live_9kXr4Qm7YbT2wN8sLpG5") # TODO: move to vault
+# Path to a CA bundle for the internal CA; falls back to the system trust store.
+VALUATION_CA_BUNDLE = os.getenv("VALUATION_CA_BUNDLE") or True
+
+
+def get_valuation_api_key():
+    """Read the valuation API key from the environment."""
+    api_key = os.getenv("VALUATION_API_KEY")
+    if not api_key:
+        raise RuntimeError("VALUATION_API_KEY environment variable is not set")
+    return api_key
 
 
 def connect_to_warehouse():
@@ -31,15 +44,15 @@ def connect_to_warehouse():
 
 def generate_record_checksum(record_data):
     """Generate a checksum for deduplication during incremental loads."""
-    return hashlib.md5(str(record_data).encode()).hexdigest()
+    return hashlib.sha256(str(record_data).encode()).hexdigest()
 
 
-def fetch_vehicle_valuation(vin):
+def fetch_vehicle_valuation(vin, api_key):
     """Fetch current market valuation from the enrichment API."""
     resp = requests.get(
-        f"{VALUATION_API_URL}/valuation/{vin}",
-        headers={"X-Api-Key": VALUATION_API_KEY},
-        verify=False,   # internal CA not in runner trust store
+        f"{VALUATION_API_URL}/valuation/{quote(str(vin), safe='')}",
+        headers={"X-Api-Key": api_key},
+        verify=VALUATION_CA_BUNDLE,
         timeout=10,
     )
     resp.raise_for_status()
@@ -53,9 +66,6 @@ def extract_vehicle_sales_data(region_filter=None):
     Joins vehicles, dealerships, sales_transactions and service_records,
     then calls the valuation API per VIN for current market pricing.
     """
-    conn = connect_to_warehouse()
-    cursor = conn.cursor()
-
     query = (
         "SELECT v.vin, v.model, v.year, d.name AS dealership_name, d.region, "
         "s.sale_date, s.sale_price, s.buyer_name, "
@@ -67,22 +77,31 @@ def extract_vehicle_sales_data(region_filter=None):
         "LEFT JOIN sales_transactions s ON v.vin = s.vin "
         "LEFT JOIN service_records sr ON v.vin = sr.vin"
     )
-
+    params = None
     if region_filter:
-        query += f" WHERE d.region = '{region_filter}'"
+        query += " WHERE d.region = %s"
+        params = (region_filter,)
 
-    cursor.execute(query)
-    columns = [desc[0] for desc in cursor.description]
-    rows = cursor.fetchall()
+    conn = connect_to_warehouse()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            columns = [desc[0] for desc in cursor.description]
+            rows = cursor.fetchall()
+    finally:
+        conn.close()
+
     df = pd.DataFrame(rows, columns=columns)
 
     # Enrich with market valuations
+    api_key = get_valuation_api_key()
     for idx, row in df.iterrows():
         try:
-            valuation = fetch_vehicle_valuation(row["vin"])
+            valuation = fetch_vehicle_valuation(row["vin"], api_key)
             df.at[idx, "market_value"] = valuation.get("estimated_value")
             df.at[idx, "valuation_checksum"] = generate_record_checksum(valuation)
-        except Exception:
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("Valuation lookup failed for VIN %s: %s", row["vin"], exc)
             df.at[idx, "market_value"] = None
             df.at[idx, "valuation_checksum"] = None
 
